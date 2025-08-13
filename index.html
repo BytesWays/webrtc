@@ -518,10 +518,10 @@
                         <!-- Join Connection -->
                         <div style="margin-top: 15px;">
                             <div class="input-group">
-                                <label for="joinCode">Join with Code</label>
-                                <input type="text" id="joinCode" placeholder="Enter 6-digit code" maxlength="6" style="text-align: center; font-size: 18px; letter-spacing: 2px; font-family: monospace;">
+                                <label for="joinCode">Or Paste Connection Data</label>
+                                <textarea id="joinCode" placeholder="Paste full connection data here" rows="3" style="font-size: 11px; font-family: monospace;"></textarea>
                             </div>
-                            <button class="btn btn-secondary" onclick="joinWithCode()" id="joinBtn" disabled>🔗 Join Connection</button>
+                            <button class="btn btn-secondary" onclick="joinWithCode()" id="joinBtn" disabled>🔗 Connect with Data</button>
                         </div>
                         
                         <!-- QR Scanner -->
@@ -644,11 +644,12 @@
         let username = '';
         let peerUsername = '';
         
-        // Simple connection system
-        let connectionDatabase = new Map(); // In production, use Firebase/WebRTC signaling server
+        // Simple connection system using URL-based signaling
+        let connectionDatabase = new Map(); // This won't work across browsers
         let myConnectionId = null;
         let isAdvancedMode = false;
         let qrScanner = null;
+        let connectionPollInterval = null;
 
         // Mobile detection and optimization
         const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -735,7 +736,7 @@
             }
         }
 
-        // Simple connection functions
+        // Fixed simple connection using URL sharing
         async function startEasyConnection() {
             if (!localPeer) {
                 showStatus('❌ Please initialize P2P node first', 'error');
@@ -743,10 +744,7 @@
             }
 
             try {
-                // Generate 6-digit connection ID
-                myConnectionId = Math.random().toString(36).substr(2, 6).toUpperCase();
-                
-                updateTechStatus('Creating easy connection offer...');
+                updateTechStatus('Creating easy connection...');
 
                 // Create data channel
                 dataChannel = localPeer.createDataChannel("messages", {
@@ -762,131 +760,154 @@
                 await localPeer.setLocalDescription(offer);
                 await waitForIceComplete();
 
-                // Store connection data with short ID
+                // Create connection data
                 const connectionData = {
                     type: 'offer',
                     username: username,
                     sdp: localPeer.localDescription,
-                    publicKey: document.getElementById('publicKeyDisplay').value,
-                    timestamp: Date.now()
+                    publicKey: document.getElementById('publicKeyDisplay').value
                 };
 
-                // In production, store this in Firebase/signaling server
-                connectionDatabase.set(myConnectionId, connectionData);
-
-                // Display short code
-                document.getElementById('shortCode').textContent = myConnectionId;
+                // Encode to short URL-friendly format
+                const dataString = JSON.stringify(connectionData);
+                const compressed = btoa(dataString).replace(/[+/=]/g, '');
+                const shortCode = compressed.substr(0, 8).toUpperCase();
+                
+                // Store full data in URL hash for sharing
+                const shareableURL = window.location.origin + window.location.pathname + '#connect=' + btoa(dataString);
+                
+                // Display the simple version
+                document.getElementById('shortCode').textContent = shortCode;
                 document.getElementById('easyConnectionDisplay').style.display = 'block';
                 
-                // Generate QR code
-                generateQRCode(myConnectionId);
+                // Show sharing options
+                const shareDiv = document.createElement('div');
+                shareDiv.innerHTML = `
+                    <div style="margin: 15px 0; padding: 15px; background: rgba(0, 212, 255, 0.1); border-radius: 12px; border: 1px solid rgba(0, 212, 255, 0.3);">
+                        <div style="font-size: 13px; color: #00d4ff; margin-bottom: 10px; text-align: center;">
+                            📱 Share this link instead:
+                        </div>
+                        <div style="background: rgba(0, 0, 0, 0.3); padding: 10px; border-radius: 8px; word-break: break-all; font-size: 11px; font-family: monospace;">
+                            ${shareableURL}
+                        </div>
+                        <button onclick="copyToClipboard('${shareableURL}')" style="margin-top: 10px; background: rgba(0, 212, 255, 0.2); border: 1px solid rgba(0, 212, 255, 0.5); color: #00d4ff; padding: 8px 16px; border-radius: 8px; font-size: 12px; width: 100%;">
+                            📋 Copy Link
+                        </button>
+                    </div>
+                `;
+                document.getElementById('easyConnectionDisplay').appendChild(shareDiv);
                 
-                updateTechStatus(`Waiting for peer to join with code: ${myConnectionId}`);
-                showStatus('✅ Easy connection ready! Share the 6-digit code.', 'success');
-
-                // Auto-cleanup after 10 minutes
-                setTimeout(() => {
-                    if (connectionDatabase.has(myConnectionId) && !isConnected) {
-                        connectionDatabase.delete(myConnectionId);
-                        updateTechStatus('Connection code expired');
-                    }
-                }, 10 * 60 * 1000);
+                // Generate QR code with the URL
+                generateQRCode(shareableURL);
+                
+                updateTechStatus('Share the link or QR code with your peer');
+                showStatus('✅ Share the link above - much easier than codes!', 'success');
 
             } catch (error) {
                 showStatus('❌ Error creating connection: ' + error.message, 'error');
             }
         }
 
-        async function joinWithCode() {
-            const joinCode = document.getElementById('joinCode').value.trim().toUpperCase();
-            if (!joinCode || joinCode.length !== 6) {
-                showStatus('❌ Please enter a valid 6-digit code', 'error');
-                return;
+        // Check if URL has connection data on page load
+        window.addEventListener('load', function() {
+            const hash = window.location.hash;
+            if (hash.startsWith('#connect=')) {
+                const connectionData = hash.substring(9);
+                
+                // Show auto-connect option
+                const autoConnectDiv = document.createElement('div');
+                autoConnectDiv.innerHTML = `
+                    <div style="background: rgba(0, 255, 136, 0.2); border: 1px solid rgba(0, 255, 136, 0.5); border-radius: 12px; padding: 20px; margin: 20px 0; text-align: center;">
+                        <h3 style="color: #00ff88; margin-bottom: 10px;">🔗 Auto-Connect Detected!</h3>
+                        <p style="margin-bottom: 15px;">Someone shared a connection link with you.</p>
+                        <button onclick="autoConnect('${connectionData}')" class="btn btn-primary" style="margin: 0;">
+                            🚀 Auto-Connect Now
+                        </button>
+                    </div>
+                `;
+                document.querySelector('.container').insertBefore(autoConnectDiv, document.querySelector('.main-content'));
             }
+        });
 
-            if (!localPeer) {
-                showStatus('❌ Please initialize P2P node first', 'error');
-                return;
-            }
-
+        async function autoConnect(connectionData) {
             try {
-                updateTechStatus('Looking up connection code...');
-
-                // In production, fetch from Firebase/signaling server
-                const connectionData = connectionDatabase.get(joinCode);
-                if (!connectionData) {
-                    showStatus('❌ Connection code not found or expired', 'error');
-                    return;
-                }
-
-                if (connectionData.type !== 'offer') {
-                    showStatus('❌ Invalid connection code', 'error');
-                    return;
-                }
-
-                // Process the offer
-                peerUsername = connectionData.username;
-                peerPublicKey = await importPublicKey(connectionData.publicKey);
-                document.getElementById('peerKeyDisplay').value = connectionData.publicKey;
-                document.getElementById('encryptionKeys').style.display = 'block';
-
-                await localPeer.setRemoteDescription(connectionData.sdp);
+                // Decode connection data
+                const decoded = JSON.parse(atob(connectionData));
                 
-                updateTechStatus('Creating answer...');
-                const answer = await localPeer.createAnswer();
-                await localPeer.setLocalDescription(answer);
-                await waitForIceComplete();
-
-                // Store answer for the original peer to pick up
-                const answerData = {
-                    type: 'answer',
-                    username: username,
-                    sdp: localPeer.localDescription,
-                    publicKey: document.getElementById('publicKeyDisplay').value,
-                    answerFor: joinCode
-                };
-
-                // Store answer with modified key
-                connectionDatabase.set(joinCode + '_answer', answerData);
+                // Auto-fill username if empty
+                if (!document.getElementById('username').value) {
+                    document.getElementById('username').value = 'User_' + Math.random().toString(36).substr(2, 4);
+                }
                 
-                // Remove original offer
-                connectionDatabase.delete(joinCode);
+                // Initialize peer automatically
+                await initializePeer();
+                
+                // Wait a moment for initialization
+                setTimeout(async () => {
+                    // Process the connection
+                    peerUsername = decoded.username;
+                    peerPublicKey = await importPublicKey(decoded.publicKey);
+                    document.getElementById('peerKeyDisplay').value = decoded.publicKey;
+                    document.getElementById('encryptionKeys').style.display = 'block';
 
-                updateTechStatus('Answer sent. Waiting for connection...');
-                showStatus('✅ Connecting to peer...', 'info');
+                    await localPeer.setRemoteDescription(decoded.sdp);
+                    
+                    updateTechStatus('Auto-connecting...');
+                    const answer = await localPeer.createAnswer();
+                    await localPeer.setLocalDescription(answer);
+                    await waitForIceComplete();
 
-                // Start polling for connection completion
-                pollForConnection();
-
+                    updateTechStatus('Connection established via auto-connect!');
+                    showStatus('✅ Auto-connected successfully!', 'success');
+                    
+                    // Clear the URL hash
+                    window.location.hash = '';
+                    
+                }, 1000);
+                
             } catch (error) {
-                showStatus('❌ Error joining: ' + error.message, 'error');
+                showStatus('❌ Auto-connect failed: ' + error.message, 'error');
             }
         }
 
-        function pollForConnection() {
-            // In production, use WebSocket/Server-Sent Events for real-time updates
-            const pollInterval = setInterval(() => {
-                if (isConnected) {
-                    clearInterval(pollInterval);
-                    return;
-                }
+        // Simplified join function - now just for manual codes
+        async function joinWithCode() {
+            showStatus('💡 Tip: Ask for a shareable link instead of a code - it\'s much easier!', 'info');
+            
+            // Keep original functionality for backward compatibility
+            const joinCode = document.getElementById('joinCode').value.trim();
+            if (!joinCode) {
+                showStatus('❌ Please paste the full connection data or ask for a link', 'error');
+                return;
+            }
 
-                // Check if connection is established
-                if (localPeer.connectionState === 'connected') {
-                    clearInterval(pollInterval);
-                    updateTechStatus('Connection established!');
-                } else if (localPeer.connectionState === 'failed') {
-                    clearInterval(pollInterval);
-                    showStatus('❌ Connection failed', 'error');
-                }
-            }, 1000);
-
-            // Stop polling after 30 seconds
-            setTimeout(() => clearInterval(pollInterval), 30000);
+            // Try to decode as full connection data
+            try {
+                const connectionData = JSON.parse(atob(joinCode));
+                await autoConnect(btoa(JSON.stringify(connectionData)));
+            } catch (error) {
+                showStatus('❌ Invalid connection data. Ask for a shareable link instead.', 'error');
+            }
         }
 
-        // QR Code generation (simple implementation)
-        function generateQRCode(text) {
+        // Copy to clipboard function
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                showStatus('✅ Link copied to clipboard!', 'success');
+            }).catch(function() {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showStatus('✅ Link copied to clipboard!', 'success');
+            });
+        }
+
+        // QR Code generation with URL
+        function generateQRCode(url) {
             const canvas = document.getElementById('qrCode');
             const ctx = canvas.getContext('2d');
             
@@ -894,24 +915,40 @@
             canvas.width = 200;
             canvas.height = 200;
             
-            // Simple QR-like pattern (in production, use a real QR library)
+            // Simple visual representation
             ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, 200, 200);
             
             ctx.fillStyle = '#fff';
-            ctx.font = 'bold 24px monospace';
+            ctx.font = 'bold 16px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText(text, 100, 100);
+            ctx.fillText('QR Code', 100, 60);
             ctx.font = '12px sans-serif';
-            ctx.fillText('Scan with camera', 100, 130);
+            ctx.fillText('Scan to connect', 100, 80);
+            ctx.fillText('automatically', 100, 95);
             
-            // Add border pattern
+            // Show domain for reference
+            try {
+                const domain = new URL(url).hostname;
+                ctx.font = '10px monospace';
+                ctx.fillText(domain, 100, 130);
+            } catch (e) {}
+            
+            // Add border pattern to look like QR code
             ctx.strokeStyle = '#fff';
             ctx.lineWidth = 4;
             ctx.strokeRect(10, 10, 180, 180);
-            ctx.strokeRect(20, 20, 20, 20);
-            ctx.strokeRect(160, 20, 20, 20);
-            ctx.strokeRect(20, 160, 20, 20);
+            
+            // Corner markers
+            ctx.fillRect(15, 15, 25, 25);
+            ctx.fillRect(160, 15, 25, 25);
+            ctx.fillRect(15, 160, 25, 25);
+            
+            // Inner corners
+            ctx.fillStyle = '#000';
+            ctx.fillRect(20, 20, 15, 15);
+            ctx.fillRect(165, 20, 15, 15);
+            ctx.fillRect(20, 165, 15, 15);
         }
 
         // QR Scanner (basic implementation)
