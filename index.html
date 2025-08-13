@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P SecureChat - Direct Encrypted Messaging</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298, #0f2027);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #00d4ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+        }
+
+        .security-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 255, 136, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            margin-top: 10px;
+        }
+
+        .security-badge::before {
+            content: "🌐";
+            font-size: 1.2em;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 25px;
+            align-items: start;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .chat-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            height: 700px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .section-title {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            color: #00d4ff;
+            text-align: center;
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 2px;
+            background: linear-gradient(45deg, #00d4ff, #00ff88);
+            border-radius: 2px;
+        }
+
+        .input-group {
+            margin-bottom: 18px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #e0e0e0;
+            font-size: 13px;
+        }
+
+        .input-group input, .input-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            resize: vertical;
+        }
+
+        .input-group input:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .input-group input::placeholder, .input-group textarea::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #00d4ff, #00ff88);
+            color: #000;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background: rgba(255, 99, 132, 0.3);
+            color: #fff;
+            border: 1px solid rgba(255, 99, 132, 0.5);
+            width: 100%;
+        }
+
+        .btn-danger:hover {
+            background: rgba(255, 99, 132, 0.5);
+        }
+
+        .status {
+            text-align: center;
+            padding: 12px;
+            border-radius: 12px;
+            margin-top: 12px;
+            font-weight: 500;
+            border: 1px solid;
+            font-size: 12px;
+        }
+
+        .status.success {
+            background: rgba(0, 255, 136, 0.2);
+            border-color: rgba(0, 255, 136, 0.5);
+            color: #00ff88;
+        }
+
+        .status.error {
+            background: rgba(255, 99, 132, 0.2);
+            border-color: rgba(255, 99, 132, 0.5);
+            color: #ff6384;
+        }
+
+        .status.info {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: rgba(0, 212, 255, 0.5);
+            color: #00d4ff;
+        }
+
+        .connection-status {
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .connection-status.disconnected {
+            background: rgba(255, 99, 132, 0.2);
+            border: 1px solid rgba(255, 99, 132, 0.5);
+            color: #ff6384;
+        }
+
+        .connection-status.connecting {
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid rgba(255, 193, 7, 0.5);
+            color: #ffc107;
+        }
+
+        .connection-status.connected {
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid rgba(0, 255, 136, 0.5);
+            color: #00ff88;
+        }
+
+        .chat-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0, 212, 255, 0.5) transparent;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(0, 212, 255, 0.5);
+            border-radius: 3px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 18px;
+            position: relative;
+            max-width: 80%;
+            word-wrap: break-word;
+            animation: messageSlide 0.3s ease-out;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.sent {
+            background: linear-gradient(45deg, #00d4ff, #0099cc);
+            color: #000;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.received {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message.system {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+            margin: 10px auto;
+            text-align: center;
+            font-style: italic;
+            font-size: 13px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .chat-input {
+            padding: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .chat-input textarea {
+            flex: 1;
+            resize: none;
+            min-height: 20px;
+            max-height: 120px;
+        }
+
+        .send-btn {
+            background: linear-gradient(45deg, #00d4ff, #00ff88);
+            border: none;
+            border-radius: 12px;
+            width: 50px;
+            height: 44px;
+            cursor: pointer;
+            color: #000;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .key-display {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .key-display h4 {
+            color: #00ff88;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        .key-display textarea {
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            height: 120px;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .info-panel {
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .info-panel h4 {
+            color: #00d4ff;
+            margin: 15px 0 8px 0;
+            font-size: 13px;
+        }
+
+        .info-panel p {
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .connection-code {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            text-align: center;
+            color: #00d4ff;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .chat-panel {
+                height: 500px;
+                order: -1;
+            }
+        }
+
+        /* Floating particles animation */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(0, 212, 255, 0.6);
+            border-radius: 50%;
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) translateX(0px) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-10vh) translateX(100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>P2P SecureChat</h1>
+            <div class="security-badge">
+                Peer-to-Peer • End-to-End Encrypted • No Servers
+            </div>
+            <p style="margin-top: 15px; opacity: 0.9;">Direct encrypted messaging with WebRTC - no central servers required</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Connection Setup Panel -->
+            <div class="panel">
+                <h2 class="section-title">P2P Connection</h2>
+                
+                <div id="connectionStatus" class="connection-status disconnected">
+                    🔴 Disconnected
+                </div>
+
+                <div class="input-group">
+                    <label for="username">Your Username</label>
+                    <input type="text" id="username" placeholder="Enter your username">
+                </div>
+
+                <button class="btn btn-primary" onclick="initializePeer()">🚀 Initialize P2P Node</button>
+                <button class="btn btn-secondary" onclick="generateConnectionCode()" id="generateCodeBtn" disabled>📋 Generate Connection Code</button>
+                
+                <div id="connectionCodeDisplay" style="display: none;">
+                    <h4 style="color: #00ff88; margin: 15px 0 8px 0;">Your Connection Code:</h4>
+                    <div id="connectionCode" class="connection-code"></div>
+                    <p style="font-size: 11px; opacity: 0.8; text-align: center;">Share this code with your contact</p>
+                </div>
+
+                <div class="input-group" style="margin-top: 20px;">
+                    <label for="peerCode">Connect to Peer</label>
+                    <textarea id="peerCode" placeholder="Paste connection code here" rows="4"></textarea>
+                </div>
+
+                <button class="btn btn-secondary" onclick="connectToPeer()" id="connectBtn" disabled>🔗 Connect to Peer</button>
+                <button class="btn btn-danger" onclick="disconnect()" id="disconnectBtn" disabled>❌ Disconnect</button>
+
+                <div id="connectionStatus2"></div>
+            </div>
+
+            <!-- Chat Panel -->
+            <div class="chat-panel">
+                <div class="chat-header">
+                    <h3 id="chatTitle">🌐 P2P Encrypted Chat</h3>
+                    <div id="encryptionStatus" style="font-size: 12px; opacity: 0.8; margin-top: 5px;">
+                        Waiting for peer connection...
+                    </div>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    <div style="text-align: center; opacity: 0.6; margin-top: 100px;">
+                        <div style="font-size: 48px; margin-bottom: 20px;">🌐</div>
+                        <h3>P2P Chat Ready</h3>
+                        <p>Initialize your node and connect directly to a peer.<br>No servers, maximum privacy!</p>
+                    </div>
+                </div>
+
+                <div class="chat-input">
+                    <textarea id="messageInput" placeholder="Type your encrypted message..." disabled></textarea>
+                    <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>►</button>
+                </div>
+            </div>
+
+            <!-- Info Panel -->
+            <div class="panel info-panel">
+                <h2 class="section-title">Security Info</h2>
+                
+                <h4>🔐 Encryption Stack:</h4>
+                <p>• <strong>RSA-2048</strong> for key exchange<br>
+                • <strong>AES-256-GCM</strong> for messages<br>
+                • <strong>WebRTC DTLS</strong> for transport</p>
+
+                <h4>🌐 P2P Architecture:</h4>
+                <p>• Direct browser-to-browser connection<br>
+                • No central messaging server<br>
+                • WebRTC DataChannel for transport<br>
+                • NAT traversal with STUN servers</p>
+
+                <h4>🛡️ Privacy Features:</h4>
+                <p>• End-to-end encryption<br>
+                • Perfect forward secrecy<br>
+                • No message persistence<br>
+                • Zero server-side logging</p>
+
+                <div id="encryptionKeys" style="display: none;">
+                    <div class="key-display">
+                        <h4>🔑 Your Public Key:</h4>
+                        <textarea id="publicKeyDisplay" readonly></textarea>
+                    </div>
+
+                    <div class="key-display">
+                        <h4>🔑 Peer's Public Key:</h4>
+                        <textarea id="peerKeyDisplay" readonly></textarea>
+                    </div>
+                </div>
+
+                <h4>📡 Connection Status:</h4>
+                <div id="techStatus" style="font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-top: 8px;">
+                    Initializing...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let localPeer = null;
+        let dataChannel = null;
+        let myKeyPair = null;
+        let peerPublicKey = null;
+        let sessionKey = null;
+        let isConnected = false;
+        let username = '';
+        let peerUsername = '';
+
+        // STUN servers for NAT traversal
+        const iceServers = [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+        ];
+
+        // Initialize peer connection
+        async function initializePeer() {
+            const usernameInput = document.getElementById('username').value.trim();
+            if (!usernameInput) {
+                showStatus('❌ Please enter your username', 'error');
+                return;
+            }
+
+            username = usernameInput;
+            
+            try {
+                updateConnectionStatus('connecting', '🟡 Initializing P2P node...');
+                updateTechStatus('Generating RSA key pair...');
+                
+                // Generate encryption keys
+                myKeyPair = await crypto.subtle.generateKey(
+                    {
+                        name: "RSA-OAEP",
+                        modulusLength: 2048,
+                        publicExponent: new Uint8Array([1, 0, 1]),
+                        hash: "SHA-256"
+                    },
+                    true,
+                    ["encrypt", "decrypt"]
+                );
+
+                // Export public key
+                const publicKeyExported = await crypto.subtle.exportKey("spki", myKeyPair.publicKey);
+                const publicKeyPem = arrayBufferToPem(publicKeyExported, "PUBLIC KEY");
+                document.getElementById('publicKeyDisplay').value = publicKeyPem;
+
+                // Create peer connection
+                localPeer = new RTCPeerConnection({ iceServers });
+                
+                // Set up event handlers
+                localPeer.onicecandidate = handleIceCandidate;
+                localPeer.ondatachannel = handleDataChannel;
+                localPeer.onconnectionstatechange = handleConnectionStateChange;
+
+                updateConnectionStatus('connecting', '🟡 P2P node initialized');
+                updateTechStatus('Node ready. WebRTC peer created.');
+                
+                document.getElementById('generateCodeBtn').disabled = false;
+                document.getElementById('connectBtn').disabled = false;
+                
+                showStatus('✅ P2P node initialized successfully!', 'success');
+
+            } catch (error) {
+                showStatus('❌ Error initializing: ' + error.message, 'error');
+                updateTechStatus('Error: ' + error.message);
+            }
+        }
+
+        // Generate connection code (offer)
+        async function generateConnectionCode() {
+            if (!localPeer) return;
+
+            try {
+                updateTechStatus('Creating WebRTC offer...');
+
+                // Create data channel
+                dataChannel = localPeer.createDataChannel("messages", {
+                    ordered: true,
+                    maxRetransmits: 3
+                });
+                dataChannel.onopen = handleDataChannelOpen;
+                dataChannel.onmessage = handleDataChannelMessage;
+                dataChannel.onclose = handleDataChannelClose;
+
+                // Create offer
+                const offer = await localPeer.createOffer();
+                await localPeer.setLocalDescription(offer);
+
+                // Wait for ICE gathering to complete
+                await waitForIceComplete();
+
+                // Create connection code with offer and public key
+                const connectionData = {
+                    type: 'offer',
+                    username: username,
+                    sdp: localPeer.localDescription,
+                    publicKey: document.getElementById('publicKeyDisplay').value
+                };
+
+                const connectionCode = btoa(JSON.stringify(connectionData));
+                document.getElementById('connectionCode').textContent = connectionCode;
+                document.getElementById('connectionCodeDisplay').style.display = 'block';
+
+                updateTechStatus('Connection code generated. Waiting for peer...');
+                showStatus('✅ Connection code generated! Share it with your contact.', 'success');
+
+            } catch (error) {
+                showStatus('❌ Error generating code: ' + error.message, 'error');
+                updateTechStatus('Error: ' + error.message);
+            }
+        }
+
+        // Connect to peer using their code
+        async function connectToPeer() {
+            const peerCode = document.getElementById('peerCode').value.trim();
+            if (!peerCode || !localPeer) {
+                showStatus('❌ Please enter a connection code', 'error');
+                return;
+            }
+
+            try {
+                updateTechStatus('Parsing connection code...');
+
+                // Parse connection code
+                const connectionData = JSON.parse(atob(peerCode));
+                peerUsername = connectionData.username;
+                
+                // Import peer's public key
+                peerPublicKey = await importPublicKey(connectionData.publicKey);
+                document.getElementById('peerKeyDisplay').value = connectionData.publicKey;
+                document.getElementById('encryptionKeys').style.display = 'block';
+
+                if (connectionData.type === 'offer') {
+                    // Handle offer - create answer
+                    await localPeer.setRemoteDescription(connectionData.sdp);
+                    
+                    updateTechStatus('Creating WebRTC answer...');
+                    const answer = await localPeer.createAnswer();
+                    await localPeer.setLocalDescription(answer);
+
+                    await waitForIceComplete();
+
+                    // Create answer code
+                    const answerData = {
+                        type: 'answer',
+                        username: username,
+                        sdp: localPeer.localDescription,
+                        publicKey: document.getElementById('publicKeyDisplay').value
+                    };
+
+                    const answerCode = btoa(JSON.stringify(answerData));
+                    
+                    // Show answer code to user
+                    const answerDiv = document.createElement('div');
+                    answerDiv.innerHTML = `
+                        <h4 style="color: #00ff88; margin: 15px 0 8px 0;">Send this Answer Code back:</h4>
+                        <div class="connection-code">${answerCode}</div>
+                        <p style="font-size: 11px; opacity: 0.8; text-align: center;">Copy and send this to complete the connection</p>
+                    `;
+                    document.getElementById('connectionCodeDisplay').appendChild(answerDiv);
+
+                    updateTechStatus('Answer created. Send answer code to peer.');
+                    showStatus('✅ Answer generated! Send the answer code back to complete connection.', 'success');
+
+                } else if (connectionData.type === 'answer') {
+                    // Handle answer
+                    peerUsername = connectionData.username;
+                    peerPublicKey = await importPublicKey(connectionData.publicKey);
+                    document.getElementById('peerKeyDisplay').value = connectionData.publicKey;
+                    document.getElementById('encryptionKeys').style.display = 'block';
+
+                    await localPeer.setRemoteDescription(connectionData.sdp);
+                    updateTechStatus('Answer processed. Establishing connection...');
+                    showStatus('✅ Connecting to peer...', 'info');
+                }
+
+            } catch (error) {
+                showStatus('❌ Error connecting: ' + error.message, 'error');
+                updateTechStatus('Error: ' + error.message);
+            }
+        }
+
+        // WebRTC event handlers
+        function handleIceCandidate(event) {
+            if (event.candidate) {
+                updateTechStatus(`ICE candidate: ${event.candidate.type}`);
+            } else {
+                updateTechStatus('ICE gathering complete');
+            }
+        }
+
+        function handleDataChannel(event) {
+            const channel = event.channel;
+            dataChannel = channel;
+            dataChannel.onopen = handleDataChannelOpen;
+            dataChannel.onmessage = handleDataChannelMessage;
+            dataChannel.onclose = handleDataChannelClose;
+        }
+
+        async function handleDataChannelOpen() {
+            isConnected = true;
+            updateConnectionStatus('connected', `🟢 Connected to ${peerUsername || 'Peer'}`);
+            updateTechStatus('Data channel open. P2P connection established!');
+            
+            document.getElementById('messageInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+            document.getElementById('disconnectBtn').disabled = false;
+            
+            document.getElementById('encryptionStatus').innerHTML = 
+                `🔐 P2P encrypted session with ${peerUsername || 'peer'}<br>` +
+                `✅ RSA-2048 + AES-256-GCM + WebRTC DTLS`;
+
+            // Generate session key for this connection
+            sessionKey = await crypto.subtle.generateKey(
+                {
+                    name: "AES-GCM",
+                    length: 256
+                },
+                true,
+                ["encrypt", "decrypt"]
+            );
+
+            addSystemMessage(`🔐 Secure P2P connection established with ${peerUsername || 'peer'}`);
+            addSystemMessage('All messages are now end-to-end encrypted');
+
+            // Clear the placeholder
+            const placeholder = document.querySelector('#chatMessages div[style*="text-align: center"]');
+            if (placeholder) placeholder.remove();
+        }
+
+        async function handleDataChannelMessage(event) {
+            try {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'message') {
+                    const decryptedMessage = await decryptMessage(data.payload);
+                    addMessage(data.sender, decryptedMessage, 'received');
+                }
+            } catch (error) {
+                console.error('Error handling message:', error);
+                addSystemMessage('❌ Error decrypting message');
+            }
+        }
+
+        function handleDataChannelClose() {
+            isConnected = false;
+            updateConnectionStatus('disconnected', '🔴 Connection lost');
+            updateTechStatus('Data channel closed');
+            
+            document.getElementById('messageInput').disabled = true;
+            document.getElementById('sendBtn').disabled = true;
+            
+            addSystemMessage('🔴 Peer disconnected');
+        }
+
+        function handleConnectionStateChange() {
+            updateTechStatus(`Connection state: ${localPeer.connectionState}`);
+            
+            if (localPeer.connectionState === 'failed') {
+                updateConnectionStatus('disconnected', '🔴 Connection failed');
+                addSystemMessage('❌ Connection failed - try reconnecting');
+            }
+        }
+
+        // Send encrypted message
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+
+            if (!message || !isConnected || !dataChannel) return;
+
+            try {
+                const encryptedPayload = await encryptMessage(message);
+                
+                const messageData = {
+                    type: 'message',
+                    sender: username,
+                    payload: encryptedPayload,
+                    timestamp: Date.now()
+                };
+
+                dataChannel.send(JSON.stringify(messageData));
+                addMessage(username, message, 'sent');
+                messageInput.value = '';
+                
+            } catch (error) {
+                showStatus('❌ Error sending message: ' + error.message, 'error');
+                addSystemMessage('❌ Failed to send message');
+            }
+        }
+
+        // Encrypt message using hybrid cryptography
+        async function encryptMessage(message) {
+            if (!sessionKey || !peerPublicKey) {
+                throw new Error('Encryption keys not available');
+            }
+
+            // Encrypt message with AES session key
+            const encoder = new TextEncoder();
+            const data = encoder.encode(message);
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            
+            const encryptedData = await crypto.subtle.encrypt(
+                {
+                    name: "AES-GCM",
+                    iv: iv
+                },
+                sessionKey,
+                data
+            );
+
+            // Encrypt session key with peer's RSA public key
+            const sessionKeyRaw = await crypto.subtle.exportKey("raw", sessionKey);
+            const encryptedSessionKey = await crypto.subtle.encrypt(
+                {
+                    name: "RSA-OAEP"
+                },
+                peerPublicKey,
+                sessionKeyRaw
+            );
+
+            return {
+                encryptedData: Array.from(new Uint8Array(encryptedData)),
+                encryptedSessionKey: Array.from(new Uint8Array(encryptedSessionKey)),
+                iv: Array.from(iv)
+            };
+        }
+
+        // Decrypt received message
+        async function decryptMessage(payload) {
+            if (!myKeyPair) {
+                throw new Error('Private key not available');
+            }
+
+            // Decrypt session key with our private key
+            const encryptedSessionKey = new Uint8Array(payload.encryptedSessionKey);
+            const sessionKeyRaw = await crypto.subtle.decrypt(
+                {
+                    name: "RSA-OAEP"
+                },
+                myKeyPair.privateKey,
+                encryptedSessionKey
+            );
+
+            // Import decrypted session key
+            const decryptedSessionKey = await crypto.subtle.importKey(
+                "raw",
+                sessionKeyRaw,
+                {
+                    name: "AES-GCM",
+                    length: 256
+                },
+                false,
+                ["encrypt", "decrypt"]
+            );
+
+            // Decrypt message with session key
+            const encryptedData = new Uint8Array(payload.encryptedData);
+            const iv = new Uint8Array(payload.iv);
+            
+            const decryptedData = await crypto.subtle.decrypt(
+                {
+                    name: "AES-GCM",
+                    iv: iv
+                },
+                decryptedSessionKey,
+                encryptedData
+            );
+
+            const decoder = new TextDecoder();
+            return decoder.decode(decryptedData);
+        }
+
+        // Disconnect from peer
+        function disconnect() {
+            if (dataChannel) {
+                dataChannel.close();
+                dataChannel = null;
+            }
+            
+            if (localPeer) {
+                localPeer.close();
+                localPeer = null;
+            }
+
+            isConnected = false;
+            sessionKey = null;
+            peerPublicKey = null;
+            peerUsername = '';
+
+            updateConnectionStatus('disconnected', '🔴 Disconnected');
+            updateTechStatus('Disconnected from peer');
+            
+            document.getElementById('messageInput').disabled = true;
+            document.getElementById('sendBtn').disabled = true;
+            document.getElementById('generateCodeBtn').disabled = true;
+            document.getElementById('connectBtn').disabled = true;
+            document.getElementById('disconnectBtn').disabled = true;
+            
+            document.getElementById('connectionCodeDisplay').style.display = 'none';
+            document.getElementById('encryptionKeys').style.display = 'none';
+            
+            addSystemMessage('🔴 Disconnected from peer');
+            
+            showStatus('Disconnected. Initialize again to reconnect.', 'info');
+        }
+
+        // Wait for ICE gathering to complete
+        function waitForIceComplete() {
+            return new Promise((resolve) => {
+                if (localPeer.iceGatheringState === 'complete') {
+                    resolve();
+                } else {
+                    const checkState = () => {
+                        if (localPeer.iceGatheringState === 'complete') {
+                            localPeer.removeEventListener('icegatheringstatechange', checkState);
+                            resolve();
+                        }
+                    };
+                    localPeer.addEventListener('icegatheringstatechange', checkState);
+                }
+            });
+        }
+
+        // Add message to chat
+        function addMessage(sender, text, type) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const time = new Date().toLocaleTimeString();
+            
+            messageDiv.innerHTML = `
+                <div style="font-weight: 600; font-size: 12px; opacity: 0.8; margin-bottom: 5px;">
+                    ${sender} ${type === 'sent' ? '(You)' : ''}
+                </div>
+                <div>${escapeHtml(text)}</div>
+                <div class="message-time">${time} • 🔐 P2P Encrypted</div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Add system message
+        function addSystemMessage(text) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message system';
+            
+            const time = new Date().toLocaleTimeString();
+            messageDiv.innerHTML = `
+                <div>${text}</div>
+                <div class="message-time">${time}</div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Update connection status
+        function updateConnectionStatus(status, message) {
+            const statusElement = document.getElementById('connectionStatus');
+            statusElement.className = `connection-status ${status}`;
+            statusElement.textContent = message;
+        }
+
+        // Update technical status
+        function updateTechStatus(message) {
+            document.getElementById('techStatus').textContent = message;
+        }
+
+        // Show status message
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('connectionStatus2');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        // Utility functions
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function arrayBufferToPem(buffer, label) {
+            const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+            const formatted = base64.match(/.{1,64}/g).join('\n');
+            return `-----BEGIN ${label}-----\n${formatted}\n-----END ${label}-----`;
+        }
+
+        function pemToArrayBuffer(pem) {
+            const base64 = pem
+                .replace(/-----BEGIN[^-]+-----/, '')
+                .replace(/-----END[^-]+-----/, '')
+                .replace(/\s/g, '');
+            const binary = atob(base64);
+            const buffer = new ArrayBuffer(binary.length);
+            const view = new Uint8Array(buffer);
+            for (let i = 0; i < binary.length; i++) {
+                view[i] = binary.charCodeAt(i);
+            }
+            return buffer;
+        }
+
+        async function importPublicKey(pemKey) {
+            const keyData = pemToArrayBuffer(pemKey);
+            return await crypto.subtle.importKey(
+                "spki",
+                keyData,
+                {
+                    name: "RSA-OAEP",
+                    hash: "SHA-256"
+                },
+                false,
+                ["encrypt"]
+            );
+        }
+
+        // Create floating particles
+        function createParticles() {
+            const particles = document.getElementById('particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                particles.appendChild(particle);
+            }
+        }
+
+        // Enter key to send message
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Auto-resize textarea
+        document.getElementById('messageInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        // Initialize particles on load
+        window.addEventListener('load', createParticles);
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', function() {
+            if (dataChannel) dataChannel.close();
+            if (localPeer) localPeer.close();
+        });
+    </script>
+</body>
+</html>
