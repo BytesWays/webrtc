@@ -492,9 +492,9 @@
                 <button class="btn btn-secondary" onclick="generateConnectionCode()" id="generateCodeBtn" disabled>📋 Generate Connection Code</button>
                 
                 <div id="connectionCodeDisplay" style="display: none;">
-                    <h4 style="color: #00ff88; margin: 15px 0 8px 0;">Your Connection Code:</h4>
+                    <h4 id="connectionCodeTitle" style="color: #00ff88; margin: 15px 0 8px 0;">Your Connection Code:</h4>
                     <div id="connectionCode" class="connection-code"></div>
-                    <p style="font-size: 11px; opacity: 0.8; text-align: center;">Share this code with your contact</p>
+                    <p id="connectionCodeDesc" style="font-size: 11px; opacity: 0.8; text-align: center;">Share this code with your contact</p>
                 </div>
 
                 <div class="input-group" style="margin-top: 20px;">
@@ -725,14 +725,13 @@
 
                     const answerCode = btoa(JSON.stringify(answerData));
                     
-                    // Show answer code to user
-                    const answerDiv = document.createElement('div');
-                    answerDiv.innerHTML = `
-                        <h4 style="color: #00ff88; margin: 15px 0 8px 0;">Send this Answer Code back:</h4>
-                        <div class="connection-code">${answerCode}</div>
-                        <p style="font-size: 11px; opacity: 0.8; text-align: center;">Copy and send this to complete the connection</p>
-                    `;
-                    document.getElementById('connectionCodeDisplay').appendChild(answerDiv);
+                    // Show answer code automatically
+                    document.getElementById('connectionCode').textContent = answerCode;
+                    document.getElementById('connectionCodeDisplay').style.display = 'block';
+                    
+                    // Update the display for answer mode
+                    document.getElementById('connectionCodeTitle').textContent = 'Send this Answer Code back:';
+                    document.getElementById('connectionCodeDesc').textContent = 'Copy and send this to complete the connection';
 
                     updateTechStatus('Answer created. Send answer code to peer.');
                     showStatus('✅ Answer generated! Send the answer code back to complete connection.', 'success');
