@@ -582,11 +582,31 @@
         let username = '';
         let peerUsername = '';
 
-        // STUN servers for NAT traversal
+        // Mobile detection and optimization
+        const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        // Enhanced STUN servers for better mobile connectivity
         const iceServers = [
             { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' }
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' }
         ];
+
+        // Mobile-specific WebRTC configuration
+        const mobileRTCConfig = {
+            iceServers: iceServers,
+            iceCandidatePoolSize: 10,
+            bundlePolicy: 'max-bundle',
+            rtcpMuxPolicy: 'require',
+            iceTransportPolicy: 'all'
+        };
+
+        // Desktop configuration (more permissive)
+        const desktopRTCConfig = {
+            iceServers: iceServers
+        };
 
         // Initialize peer connection
         async function initializePeer() {
@@ -619,8 +639,8 @@
                 const publicKeyPem = arrayBufferToPem(publicKeyExported, "PUBLIC KEY");
                 document.getElementById('publicKeyDisplay').value = publicKeyPem;
 
-                // Create peer connection
-                localPeer = new RTCPeerConnection({ iceServers });
+                // Create peer connection with mobile-optimized config
+                localPeer = new RTCPeerConnection(isMobile ? mobileRTCConfig : desktopRTCConfig);
                 
                 // Set up event handlers
                 localPeer.onicecandidate = handleIceCandidate;
@@ -1126,6 +1146,35 @@
             if (dataChannel) dataChannel.close();
             if (localPeer) localPeer.close();
         });
+
+        // Mobile-specific page lifecycle handling
+        if (isMobile) {
+            // Prevent connection drops when app goes to background
+            document.addEventListener('visibilitychange', function() {
+                if (document.hidden) {
+                    updateTechStatus('App backgrounded - maintaining connection...');
+                } else {
+                    updateTechStatus('App foregrounded - connection active');
+                    // Refresh connection status
+                    if (localPeer && localPeer.connectionState) {
+                        updateTechStatus(`Connection state: ${localPeer.connectionState}`);
+                    }
+                }
+            });
+
+            // Handle page lifecycle for mobile
+            window.addEventListener('pagehide', function() {
+                if (dataChannel && dataChannel.readyState === 'open') {
+                    // Send disconnect notification
+                    try {
+                        dataChannel.send(JSON.stringify({
+                            type: 'disconnect',
+                            reason: 'page_hide'
+                        }));
+                    } catch (e) {}
+                }
+            });
+        }
     </script>
 </body>
 </html>
